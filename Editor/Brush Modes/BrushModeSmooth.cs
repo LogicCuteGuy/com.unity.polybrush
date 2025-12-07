@@ -18,7 +18,7 @@ namespace UnityEditor.Polybrush
             public int commonVertexCount;
         }
 
-        const float SMOOTH_STRENGTH_MODIFIER = .1f;
+        // Note: Strength modifier is now centralized in BrushStrengthUtility for consistency
 
         [UserSetting]
         internal static Pref<PolyDirection> s_SmoothDirection = new Pref<PolyDirection>("Brush.Direction", PolyDirection.VertexNormal, SettingsScope.Project);
@@ -139,7 +139,7 @@ namespace UnityEditor.Polybrush
                     t = Vector3.Lerp(v, avg, hit.weights[index]);
                     int[] indices = data.commonVertices[i];
 
-                    Vector3 pos = v + (t-v) * settings.strength * SMOOTH_STRENGTH_MODIFIER;
+                    Vector3 pos = v + (t-v) * BrushStrengthUtility.GetSmoothStrength(settings.strength);
 
                     for(int n = 0; n < indices.Length; n++)
                         data.vertices[indices[n]] = pos;

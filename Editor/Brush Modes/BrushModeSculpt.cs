@@ -147,7 +147,62 @@ namespace UnityEditor.Polybrush
 
             if (!m_LikelyToSupportVertexSculpt)
                 EditorGUILayout.HelpBox("Sculpting on skin meshes is not supported.", MessageType.Warning);
+            
+            // Sculpt Power Info Box - provides additional context about strength
+            if (settings.strength > 0f)
+            {
+                string powerDescription = GetSculptPowerDescription(settings.strength);
+                EditorGUILayout.HelpBox(powerDescription, MessageType.Info);
+            }
+            
+            // Image Brush Toggle
+            if (settings.imageBrushSettings != null)
+            {
+                EditorGUI.BeginChangeCheck();
+                
+                bool imageBrushEnabled = settings.imageBrushSettings.enabled;
+                imageBrushEnabled = PolyGUILayout.Toggle(
+                    new GUIContent("Use Image Brush", "Enable image-based brush shape using a texture"),
+                    imageBrushEnabled
+                );
+                
+                if (EditorGUI.EndChangeCheck())
+                {
+                    settings.imageBrushSettings.enabled = imageBrushEnabled;
+                    PolybrushSettings.Save();
+                }
+                
+                // Show warning if enabled but no texture assigned (will fall back to standard brush)
+                if (imageBrushEnabled && settings.imageBrushSettings.brushTexture == null)
+                {
+                    EditorGUILayout.HelpBox(
+                        "Image brush is enabled but no texture is assigned. The brush will use standard circular falloff. Configure the texture in Brush Settings.",
+                        MessageType.Info
+                    );
+                }
+                
+                // Show warning if texture is not valid (will fall back to standard brush)
+                if (imageBrushEnabled && settings.imageBrushSettings.brushTexture != null)
+                {
+                    string validationError;
+                    if (!ErrorHandling.ValidateTextureFormat(settings.imageBrushSettings.brushTexture, out validationError))
+                    {
+                        EditorGUILayout.HelpBox(
+                            validationError + "\nThe brush will fall back to standard circular mode.",
+                            MessageType.Warning
+                        );
+                    }
+                }
+            }
 		}
+
+        /// <summary>
+        /// Get a user-friendly description of the current sculpt power level
+        /// </summary>
+        private string GetSculptPowerDescription(float strength)
+        {
+            return BrushStrengthUtility.GetStrengthDescription(strength, "Sculpt Power");
+        }
 
         /// <summary>
         /// Cache the brush normals and the mesh normals

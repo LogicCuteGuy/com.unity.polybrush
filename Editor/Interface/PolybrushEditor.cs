@@ -167,6 +167,7 @@ namespace UnityEditor.Polybrush
                 EditorGUIUtility.TrIconContent(IconUtility.GetIcon("Toolbar/PaintVertexColors"), "Paint vertex colors on meshes"),
                 EditorGUIUtility.TrIconContent(IconUtility.GetIcon("Toolbar/PaintPrefabs"), "Scatter Prefabs on meshes"),
                 EditorGUIUtility.TrIconContent(IconUtility.GetIcon("Toolbar/PaintTextures"), "Paint textures on meshes"),
+                EditorGUIUtility.TrIconContent(IconUtility.GetIcon("Toolbar/Sculpt"), "Topology - Subdivide/Unsubdivide meshes"),
             };
 
 #if UNITY_2019_1_OR_NEWER

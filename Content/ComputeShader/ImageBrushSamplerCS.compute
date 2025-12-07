@@ -1,0 +1,82 @@
+#pragma kernel ImageBrushSampleKernel
+
+// Input buffers
+StructuredBuffer<float3> positionBuffer;      // World positions to sample
+Texture2D<float4> brushTexture;               // The brush texture
+SamplerState samplerbrushTexture;             // Texture sampler
+
+// Output buffer
+RWStructuredBuffer<float> weightBuffer;       // Output weights (0-1)
+
+// Brush parameters
+float3 brushCenter;                           // Center of brush in world space
+float brushRadius;                            // Radius of brush
+float rotation;                               // Rotation in radians
+float aspectRatio;                            // Width / Height of texture
+uint numPositions;                            // Number of positions to process
+bool preserveAspect;                          // Whether to preserve aspect ratio
+
+[numthreads(512,1,1)]
+void ImageBrushSampleKernel (uint id : SV_DispatchThreadID)
+{
+    if (id >= numPositions)
+        return;
+
+    // Default weight is 0 (no influence)
+    weightBuffer[id] = 0.0f;
+
+    // Get world position
+    float3 worldPos = positionBuffer[id];
+
+    // Transform to brush-local space
+    float3 localPos = worldPos - brushCenter;
+    float distance = length(localPos);
+
+    // Early out if outside brush radius
+    if (distance > brushRadius)
+        return;
+
+    // Normalize to brush space (-1 to 1)
+    float2 brushSpace = float2(localPos.x, localPos.z) / brushRadius;
+
+    // Apply rotation
+    if (rotation != 0.0f)
+    {
+        float cosR = cos(rotation);
+        float sinR = sin(rotation);
+        float x = brushSpace.x * cosR - brushSpace.y * sinR;
+        float y = brushSpace.x * sinR + brushSpace.y * cosR;
+        brushSpace = float2(x, y);
+    }
+
+    // Apply aspect ratio correction if needed
+    if (preserveAspect && aspectRatio != 1.0f)
+    {
+        if (aspectRatio > 1.0f)
+        {
+            // Wider than tall
+            brushSpace.x /= aspectRatio;
+        }
+        else
+        {
+            // Taller than wide
+            brushSpace.y *= aspectRatio;
+        }
+    }
+
+    // Convert from brush space (-1 to 1) to texture UV space (0 to 1)
+    float2 uv = (brushSpace + 1.0f) * 0.5f;
+
+    // Clamp to valid UV range
+    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f)
+        return;
+
+    // Sample texture (using hardware bilinear filtering)
+    float4 color = brushTexture.SampleLevel(samplerbrushTexture, uv, 0);
+
+    // Convert to grayscale using standard luminance formula
+    float grayscale = dot(color.rgb, float3(0.299f, 0.587f, 0.114f));
+
+    // Store result
+    weightBuffer[id] = grayscale;
+}

@@ -10,7 +10,8 @@ namespace UnityEditor.Polybrush
 		Smooth = 2,
 		Paint = 3,
 		Prefab = 4,
-		Texture = 5
+		Texture = 5,
+		Topology = 6
 	}
 
     /// <summary>
@@ -41,6 +42,9 @@ namespace UnityEditor.Polybrush
 
 				case BrushTool.Texture:
 					return typeof(BrushModeTexture);
+
+				case BrushTool.Topology:
+					return typeof(BrushModeTopology);
 			}
 
 			return null;

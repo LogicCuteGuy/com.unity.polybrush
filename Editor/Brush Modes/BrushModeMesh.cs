@@ -17,6 +17,72 @@ namespace UnityEditor.Polybrush
 
         private HashSet<GameObject> modifiedPbMeshes = new HashSet<GameObject>();
 
+        /// <summary>
+        /// Gets the direction sign based on modifier keys.
+        /// Returns -1 when Shift is held (negative/inverse operation), +1 otherwise (positive/normal operation).
+        /// Use this for operations that should be reversible with Shift key.
+        /// </summary>
+        /// <param name="settings">Current brush settings containing modifier key state</param>
+        /// <returns>+1 for normal operation, -1 for inverse operation when Shift is held</returns>
+        protected float GetDirectionSign(BrushSettings settings)
+        {
+            return settings.isUserHoldingShift ? -1f : 1f;
+        }
+
+        /// <summary>
+        /// Gets the direction sign based on Control key.
+        /// Returns -1 when Control is held (negative/inverse operation), +1 otherwise (positive/normal operation).
+        /// Use this for operations that should be reversible with Control key.
+        /// </summary>
+        /// <param name="settings">Current brush settings containing modifier key state</param>
+        /// <returns>+1 for normal operation, -1 for inverse operation when Control is held</returns>
+        protected float GetControlDirectionSign(BrushSettings settings)
+        {
+            return settings.isUserHoldingControl ? -1f : 1f;
+        }
+
+        /// <summary>
+        /// Gets the direction sign based on either Shift or Control key.
+        /// Returns -1 when either modifier is held (negative/inverse operation), +1 otherwise.
+        /// Use this for operations that should be reversible with either modifier key.
+        /// </summary>
+        /// <param name="settings">Current brush settings containing modifier key state</param>
+        /// <returns>+1 for normal operation, -1 for inverse operation when Shift or Control is held</returns>
+        protected float GetAnyModifierDirectionSign(BrushSettings settings)
+        {
+            return (settings.isUserHoldingShift || settings.isUserHoldingControl) ? -1f : 1f;
+        }
+
+        /// <summary>
+        /// Checks if the operation should be inverted based on Shift key.
+        /// </summary>
+        /// <param name="settings">Current brush settings containing modifier key state</param>
+        /// <returns>True if Shift is held and operation should be inverted</returns>
+        protected bool IsInvertedByShift(BrushSettings settings)
+        {
+            return settings.isUserHoldingShift;
+        }
+
+        /// <summary>
+        /// Checks if the operation should be inverted based on Control key.
+        /// </summary>
+        /// <param name="settings">Current brush settings containing modifier key state</param>
+        /// <returns>True if Control is held and operation should be inverted</returns>
+        protected bool IsInvertedByControl(BrushSettings settings)
+        {
+            return settings.isUserHoldingControl;
+        }
+
+        /// <summary>
+        /// Checks if the operation should be inverted based on either Shift or Control key.
+        /// </summary>
+        /// <param name="settings">Current brush settings containing modifier key state</param>
+        /// <returns>True if either Shift or Control is held and operation should be inverted</returns>
+        protected bool IsInvertedByAnyModifier(BrushSettings settings)
+        {
+            return settings.isUserHoldingShift || settings.isUserHoldingControl;
+        }
+
         internal override void OnBrushBeginApply(BrushTarget brushTarget, BrushSettings brushSettings)
 		{
             base.OnBrushBeginApply(brushTarget, brushSettings);

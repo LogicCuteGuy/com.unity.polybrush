@@ -22,8 +22,7 @@ namespace UnityEditor.Polybrush
         {
             internal static GUIContent s_GCBrushEffect = new GUIContent("Sculpt Power", "Defines the baseline distance that vertices will be moved when a brush is applied at full strength.");
         }
-        // Modifier to apply on top of strength.  Translates to brush applications per second roughly.
-        const float k_StrengthModifier = .01f;
+        // Note: Strength modifier is now centralized in BrushStrengthUtility for consistency
 
         [UserSetting]
         internal static Pref<float> s_RaiseLowerStrength = new Pref<float>("RaiseLowerBrush.Strength", 5f, SettingsScope.Project);
@@ -110,7 +109,7 @@ namespace UnityEditor.Polybrush
 			float scale = 1f / ( Vector3.Scale(target.transform.lossyScale, n).magnitude );
             float sign = settings.isUserHoldingControl ? -1f : 1f;//Event.current != null ? (Event.current.control ? -1f : 1f) : 1f;
 
-			float maxMoveDistance = settings.strength * k_StrengthModifier * sign * s_RaiseLowerStrength;
+			float maxMoveDistance = BrushStrengthUtility.GetSculptStrength(settings.strength, s_RaiseLowerStrength) * sign;
 			int vertexCount = target.editableObject.vertexCount;
 
 			PolyMesh mesh = target.editableObject.editMesh;

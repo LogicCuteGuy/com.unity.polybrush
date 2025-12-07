@@ -205,7 +205,7 @@ namespace UnityEditor.Polybrush
 		{
 			bool invert = settings.isUserHoldingControl;
             var data = m_EditableObjectsData[target.editableObject];
-			if( (EditorApplication.timeSinceStartup - data.LastBrushApplication) > Mathf.Max(.06f, (1f - settings.strength)) )
+			if( (EditorApplication.timeSinceStartup - data.LastBrushApplication) > BrushStrengthUtility.GetPrefabPlacementInterval(settings.strength) )
             {
 				data.LastBrushApplication = EditorApplication.timeSinceStartup;
 

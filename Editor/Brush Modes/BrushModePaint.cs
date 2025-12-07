@@ -143,8 +143,7 @@ namespace UnityEditor.Polybrush
             public Dictionary<PolyEdge, List<int>> TriangleLookup;
         }
 
-		// how many applications it should take to reach the full strength
-		const float k_StrengthModifier = 1f/8f;
+		// Note: Strength modifier is now centralized in BrushStrengthUtility for consistency
 		static readonly Color s_WhiteColor = new Color32(255, 255, 255, 255);
 
 		[SerializeField]

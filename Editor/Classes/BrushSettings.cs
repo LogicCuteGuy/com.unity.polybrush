@@ -28,6 +28,9 @@ namespace UnityEditor.Polybrush
             new Keyframe(1f, 0f, -3f, -3f)
             );
 
+        /// Image brush settings for texture-based brush shapes
+        [SerializeField] private ImageBrushSettings _imageBrushSettings = new ImageBrushSettings();
+
         public string assetsFolder { get { return "Brush Settings/"; } }
 
         internal AnimationCurve falloffCurve
@@ -44,6 +47,14 @@ namespace UnityEditor.Polybrush
 
         /// If true, the falloff curve won't be clamped to keyframes at 0,0 and 1,1.
         public bool allowNonNormalizedFalloff = false;
+
+        /// <summary>
+        /// Image brush settings for texture-based brush shapes.
+        /// </summary>
+        internal ImageBrushSettings imageBrushSettings
+        {
+            get { return _imageBrushSettings; }
+        }
 
         /// The total affected radius of this brush.
         internal float radius
@@ -121,6 +132,7 @@ namespace UnityEditor.Polybrush
             radius = 1f;
             falloff = .5f;
             strength = 1f;
+            _imageBrushSettings = new ImageBrushSettings();
         }
 
         /// <summary>
@@ -148,6 +160,14 @@ namespace UnityEditor.Polybrush
 			target._strength						= this._strength;
 			target._curve							= new AnimationCurve(this._curve.keys);
 			target.allowNonNormalizedFalloff		= this.allowNonNormalizedFalloff;
+			
+			// Copy image brush settings
+			if (this._imageBrushSettings != null)
+			{
+				if (target._imageBrushSettings == null)
+					target._imageBrushSettings = new ImageBrushSettings();
+				this._imageBrushSettings.CopyTo(target._imageBrushSettings);
+			}
 		}
     }
 }

@@ -281,6 +281,14 @@ namespace UnityEditor.Polybrush
             Transform transform = target.transform;
             int vertexCount = mesh.vertexCount;
             Vector3[] vertices = mesh.vertices;
+            
+            // Check if image brush is enabled and valid, with fallback to standard brush
+            bool useImageBrush = ErrorHandling.ValidateImageBrushOrFallback(settings, showWarnings: false);
+            float[] imageBrushWeights = null;
+            if (useImageBrush)
+            {
+                imageBrushWeights = new float[vertexCount];
+            }
 
             if (!uniformScale)
             {
@@ -372,8 +380,69 @@ namespace UnityEditor.Polybrush
                 }
             }
 
+            // Apply image brush weights if enabled
+            if (useImageBrush)
+            {
+                ApplyImageBrushWeights(target, settings, vertices, transform, uniformScale);
+            }
+
 			target.GetAllWeights(true);
 		}
+
+        /// <summary>
+        /// Apply image brush weights to the target's raycast hits.
+        /// Multiplies the standard falloff weights by the sampled image intensity.
+        /// </summary>
+        /// <param name="target">The brush target</param>
+        /// <param name="settings">Brush settings containing image brush configuration</param>
+        /// <param name="vertices">Vertex positions (in world space if not uniform scale)</param>
+        /// <param name="transform">Transform of the target object</param>
+        /// <param name="uniformScale">Whether the object has uniform scale</param>
+        private static void ApplyImageBrushWeights(BrushTarget target, BrushSettings settings, Vector3[] vertices, Transform transform, bool uniformScale)
+        {
+            ImageBrushSettings imageBrush = settings.imageBrushSettings;
+            
+            if (imageBrush == null || !imageBrush.IsValid())
+                return;
+
+            int vertexCount = vertices.Length;
+            
+            // For each raycast hit, we need to sample the image brush and multiply the weights
+            for (int n = 0; n < target.raycastHits.Count; n++)
+            {
+                PolyRaycastHit hit = target.raycastHits[n];
+                
+                if (hit.weights == null)
+                    continue;
+
+                Vector3 brushCenter = uniformScale ? hit.position : transform.TransformPoint(hit.position);
+                
+                // Sample image brush for all vertices with non-zero weights
+                // We'll use batch sampling for better performance
+                Vector3[] worldPositions = new Vector3[vertexCount];
+                for (int i = 0; i < vertexCount; i++)
+                {
+                    worldPositions[i] = uniformScale ? transform.TransformPoint(vertices[i]) : vertices[i];
+                }
+                
+                float[] imageWeights = new float[vertexCount];
+                ImageBrushSampler.SampleBatch(
+                    imageBrush.brushTexture,
+                    worldPositions,
+                    brushCenter,
+                    settings.radius * (uniformScale ? 1f / transform.lossyScale.x : 1f),
+                    imageBrush.rotation,
+                    imageBrush.preserveAspectRatio,
+                    imageWeights
+                );
+                
+                // Multiply the standard weights by the image weights
+                for (int i = 0; i < vertexCount; i++)
+                {
+                    hit.weights[i] *= imageWeights[i];
+                }
+            }
+        }
 
 		internal static IEnumerable<GameObject> FindInstancesInScene(IEnumerable<GameObject> match, System.Func<GameObject, string> instanceNamingFunc)
 		{
