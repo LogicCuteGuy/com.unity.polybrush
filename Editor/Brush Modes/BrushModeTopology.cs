@@ -699,10 +699,20 @@ namespace UnityEditor.Polybrush
                 int v1 = oldTriangles[i + 1];
                 int v2 = oldTriangles[i + 2];
                 
-                // Get remapped indices
-                int newV0 = vertexRemapping.ContainsKey(v0) ? vertexRemapping[v0] : v0;
-                int newV1 = vertexRemapping.ContainsKey(v1) ? vertexRemapping[v1] : v1;
-                int newV2 = vertexRemapping.ContainsKey(v2) ? vertexRemapping[v2] : v2;
+                // Get remapped indices - all vertices should be in the mapping
+                if (!vertexRemapping.ContainsKey(v0) || !vertexRemapping.ContainsKey(v1) || !vertexRemapping.ContainsKey(v2))
+                {
+                    // Skip triangles with unmapped vertices (shouldn't happen, but safety check)
+                    continue;
+                }
+                
+                int newV0 = vertexRemapping[v0];
+                int newV1 = vertexRemapping[v1];
+                int newV2 = vertexRemapping[v2];
+                
+                // Validate indices are within bounds
+                if (newV0 >= newVertices.Count || newV1 >= newVertices.Count || newV2 >= newVertices.Count)
+                    continue;
                 
                 // Skip degenerate triangles (where two or more vertices are the same)
                 if (newV0 == newV1 || newV1 == newV2 || newV2 == newV0)
@@ -724,9 +734,29 @@ namespace UnityEditor.Polybrush
             if (newUV3 != null) mesh.uv3 = newUV3;
 
             // Update submesh triangles
+            // For unsubdivision, we consolidate all triangles into the first submesh
+            // and clear other submeshes to avoid validation errors from stale data
             if (mesh.subMeshes != null && mesh.subMeshes.Length > 0)
             {
                 mesh.subMeshes[0].indexes = newTriangles.ToArray();
+                
+                // Clear other submeshes to prevent validation errors from stale data
+                for (int i = 1; i < mesh.subMeshes.Length; i++)
+                {
+                    if (mesh.subMeshes[i] != null)
+                    {
+                        mesh.subMeshes[i].indexes = new int[0];
+                    }
+                }
+            }
+            
+            // Force refresh of the triangle cache to reflect the new submesh data
+            // This is critical because GetTriangles() may return cached data
+            System.Reflection.FieldInfo trianglesField = typeof(PolyMesh).GetField("m_Triangles", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (trianglesField != null)
+            {
+                trianglesField.SetValue(mesh, null);
             }
         }
 
@@ -1144,6 +1174,32 @@ namespace UnityEditor.Polybrush
             Vector3 p1 = mesh.vertices[v1];
             Vector3 p2 = mesh.vertices[v2];
             
+            return IsTriangleDegenerateByPositions(p0, p1, p2);
+        }
+
+        /// <summary>
+        /// Check if a triangle is degenerate using vertex indices and a vertex list
+        /// </summary>
+        private bool IsTriangleDegenerateByIndices(int v0, int v1, int v2, List<Vector3> vertices)
+        {
+            if (v0 >= vertices.Count || v1 >= vertices.Count || v2 >= vertices.Count)
+                return true;
+            
+            if (v0 < 0 || v1 < 0 || v2 < 0)
+                return true;
+            
+            Vector3 p0 = vertices[v0];
+            Vector3 p1 = vertices[v1];
+            Vector3 p2 = vertices[v2];
+            
+            return IsTriangleDegenerateByPositions(p0, p1, p2);
+        }
+
+        /// <summary>
+        /// Check if a triangle is degenerate based on vertex positions
+        /// </summary>
+        private bool IsTriangleDegenerateByPositions(Vector3 p0, Vector3 p1, Vector3 p2)
+        {
             // Check for coincident vertices
             float epsilon = 0.0001f;
             if (Vector3.Distance(p0, p1) < epsilon || 
@@ -1203,26 +1259,63 @@ namespace UnityEditor.Polybrush
                 int m20 = GetOrCreateMidpoint(v2, v0, edgeMidpoints, newVertices, newNormals, newColors, newTangents, newUV0, newUV1, newUV2, newUV3, mesh);
                 
                 // Replace original triangle with 4 new triangles
+                // Only add triangles that are not degenerate
+                
                 // Triangle 1: v0, m01, m20
-                newTriangles[idx0] = v0;
-                newTriangles[idx1] = m01;
-                newTriangles[idx2] = m20;
+                if (!IsTriangleDegenerateByIndices(v0, m01, m20, newVertices))
+                {
+                    newTriangles[idx0] = v0;
+                    newTriangles[idx1] = m01;
+                    newTriangles[idx2] = m20;
+                }
+                else
+                {
+                    // Mark original triangle slots as invalid (will be removed later)
+                    newTriangles[idx0] = -1;
+                    newTriangles[idx1] = -1;
+                    newTriangles[idx2] = -1;
+                }
                 
                 // Triangle 2: m01, v1, m12
-                newTriangles.Add(m01);
-                newTriangles.Add(v1);
-                newTriangles.Add(m12);
+                if (!IsTriangleDegenerateByIndices(m01, v1, m12, newVertices))
+                {
+                    newTriangles.Add(m01);
+                    newTriangles.Add(v1);
+                    newTriangles.Add(m12);
+                }
                 
                 // Triangle 3: m20, m12, v2
-                newTriangles.Add(m20);
-                newTriangles.Add(m12);
-                newTriangles.Add(v2);
+                if (!IsTriangleDegenerateByIndices(m20, m12, v2, newVertices))
+                {
+                    newTriangles.Add(m20);
+                    newTriangles.Add(m12);
+                    newTriangles.Add(v2);
+                }
                 
                 // Triangle 4: m01, m12, m20 (center triangle)
-                newTriangles.Add(m01);
-                newTriangles.Add(m12);
-                newTriangles.Add(m20);
+                if (!IsTriangleDegenerateByIndices(m01, m12, m20, newVertices))
+                {
+                    newTriangles.Add(m01);
+                    newTriangles.Add(m12);
+                    newTriangles.Add(m20);
+                }
             }
+            
+            // Remove invalid triangles (marked with -1)
+            List<int> validTriangles = new List<int>();
+            for (int i = 0; i < newTriangles.Count; i += 3)
+            {
+                if (i + 2 < newTriangles.Count && 
+                    newTriangles[i] >= 0 && 
+                    newTriangles[i + 1] >= 0 && 
+                    newTriangles[i + 2] >= 0)
+                {
+                    validTriangles.Add(newTriangles[i]);
+                    validTriangles.Add(newTriangles[i + 1]);
+                    validTriangles.Add(newTriangles[i + 2]);
+                }
+            }
+            newTriangles = validTriangles;
             
             // Check vertex limit using centralized error handling
             if (!ErrorHandling.CheckVertexLimitForSubdivision(mesh.vertexCount, newVertices.Count - mesh.vertexCount, use32BitIndices: false))
@@ -1244,6 +1337,15 @@ namespace UnityEditor.Polybrush
             if (mesh.subMeshes != null && mesh.subMeshes.Length > 0)
             {
                 mesh.subMeshes[0].indexes = newTriangles.ToArray();
+            }
+            
+            // Force refresh of the triangle cache to reflect the new submesh data
+            // This is critical because GetTriangles() may return cached data
+            System.Reflection.FieldInfo trianglesField = typeof(PolyMesh).GetField("m_Triangles", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (trianglesField != null)
+            {
+                trianglesField.SetValue(mesh, null);
             }
         }
 

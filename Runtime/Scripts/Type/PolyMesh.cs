@@ -275,10 +275,14 @@ namespace UnityEngine.Polybrush
                 mesh.colors = colors;
 				mesh.tangents = tangents;
 
-				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
-				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
-				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
-				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
+				if(uv0 != null && uv0.Count == vertexCount)
+					mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
+				if(uv1 != null && uv1.Count == vertexCount)
+					mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
+				if(uv2 != null && uv2.Count == vertexCount)
+					mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
+				if(uv3 != null && uv3.Count == vertexCount)
+					mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
 
                 mesh.subMeshCount = subMeshCount;
 
@@ -302,10 +306,10 @@ namespace UnityEngine.Polybrush
 				if((attrib & MeshChannel.Normal) > 0) mesh.normals = normals;
 				if((attrib & MeshChannel.Color) > 0) mesh.colors = colors;
 				if((attrib & MeshChannel.Tangent) > 0) mesh.tangents = tangents;
-				if((attrib & MeshChannel.UV0) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
-				if((attrib & MeshChannel.UV2) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
-				if((attrib & MeshChannel.UV3) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
-				if((attrib & MeshChannel.UV4) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
+				if((attrib & MeshChannel.UV0) > 0 && uv0 != null && uv0.Count == vertexCount) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
+				if((attrib & MeshChannel.UV2) > 0 && uv1 != null && uv1.Count == vertexCount) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
+				if((attrib & MeshChannel.UV3) > 0 && uv2 != null && uv2.Count == vertexCount) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
+				if((attrib & MeshChannel.UV4) > 0 && uv3 != null && uv3.Count == vertexCount) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
 			}
 #pragma warning restore 0162
 		}

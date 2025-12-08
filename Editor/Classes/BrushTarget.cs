@@ -97,8 +97,9 @@ namespace UnityEditor.Polybrush
 				if(raycastHits[i].weights != null)
 				{
 					float[] w = raycastHits[i].weights;
+					int weightsLength = Mathf.Min(w.Length, vertexCount);
 
-					for(int n = 0; n < vertexCount; n++)
+					for(int n = 0; n < weightsLength; n++)
 						if(w[n] > _weights[n])
 							_weights[n] = w[n];
 				}
